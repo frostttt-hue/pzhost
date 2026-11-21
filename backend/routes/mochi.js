@@ -63,12 +63,28 @@ function mochiGuard(req, res, next) {
   return next();
 }
 
+// MOCHI_UPSTREAM: optional remote Mochi origin (e.g. https://petezahgames.com) used when the
+// local Rust Mochi binary (127.0.0.1:3005) is not running, e.g. on a plain Node host.
+const MOCHI_TARGET = (process.env.MOCHI_UPSTREAM || '').trim().replace(/\/+$/, '') || 'http://127.0.0.1:3005';
+const MOCHI_REMOTE = /^https?:\/\//i.test(MOCHI_TARGET) && !/127\.0\.0\.1|localhost/i.test(MOCHI_TARGET);
+
 const mochiProxy = createProxyMiddleware({
-  target: 'http://127.0.0.1:3005',
-  changeOrigin: false,
+  target: MOCHI_TARGET,
+  changeOrigin: MOCHI_REMOTE,
   ws: false,
-  pathRewrite: (path) => toMochiBackendPath(path),
+  pathRewrite: (path, req) => toMochiBackendPath(MOCHI_REMOTE ? req.originalUrl || path : path),
   on: {
+    proxyReq: (proxyReq) => {
+      if (!MOCHI_REMOTE) return;
+      // Never leak this site's session/auth to the remote upstream.
+      proxyReq.removeHeader('cookie');
+      proxyReq.removeHeader('authorization');
+    },
+    proxyRes: (proxyRes) => {
+      if (!MOCHI_REMOTE) return;
+      delete proxyRes.headers['set-cookie'];
+      delete proxyRes.headers['strict-transport-security'];
+    },
     error: (err, req, res) => {
       if (res && 'status' in res) {
         res.status(502).send('Proxy unavailable');

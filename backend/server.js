@@ -626,6 +626,35 @@ if (IS_DEV) {
       },
     })
   );
+  // GAME_ASSET_UPSTREAM: game files (public/storage/ag) are gitignored upstream; when they are
+  // missing locally, stream them from a public mirror (e.g. https://petezahgames.com).
+  const gameAssetUpstream = (process.env.GAME_ASSET_UPSTREAM || '').trim().replace(/\/+$/, '');
+  if (gameAssetUpstream) {
+    const { createProxyMiddleware } = await import('http-proxy-middleware');
+    app.use(
+      '/storage/ag',
+      createProxyMiddleware({
+        target: gameAssetUpstream,
+        changeOrigin: true,
+        ws: false,
+        pathRewrite: (p, req) => req.originalUrl || p,
+        on: {
+          proxyReq: (proxyReq) => {
+            proxyReq.removeHeader('cookie');
+            proxyReq.removeHeader('authorization');
+          },
+          proxyRes: (proxyRes) => {
+            delete proxyRes.headers['set-cookie'];
+            delete proxyRes.headers['strict-transport-security'];
+            delete proxyRes.headers['x-frame-options'];
+          },
+          error: (err, req, res) => {
+            if (res && 'status' in res && !res.headersSent) res.status(502).type('text/plain').send('Game asset upstream unavailable');
+          },
+        },
+      })
+    );
+  }
   app.use(express.static(distPath, {
     index: false,
     setHeaders(res, filePath) {
