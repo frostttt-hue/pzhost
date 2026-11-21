@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="robots" content="noindex,nofollow" />
+<meta name="referrer" content="no-referrer" />
+<title>New Tab</title>
+<link rel="icon" href="data:," />
+<style>
+  :root{--bg:#070d17;--bar:#0d1522;--tab:#121c2c;--tabA:#1b2840;--line:#1f2c42;--tx:#d7e2f2;--mut:#7d8ca3;--acc:#4c8dff;--ok:#36c58a}
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--tx);font:13px/1.3 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;overflow:hidden}
+  #app{display:flex;flex-direction:column;height:100%}
+  #tabs{display:flex;align-items:flex-end;gap:4px;padding:6px 8px 0;background:var(--bar);overflow-x:auto;scrollbar-width:none;min-height:38px}
+  #tabs::-webkit-scrollbar{display:none}
+  .tab{display:flex;align-items:center;gap:6px;min-width:120px;max-width:210px;flex:0 1 210px;height:32px;padding:0 8px 0 12px;background:var(--tab);border:1px solid var(--line);border-bottom:none;border-radius:9px 9px 0 0;color:var(--mut);cursor:pointer;user-select:none}
+  .tab.active{background:var(--tabA);color:var(--tx)}
+  .tab .t{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .tab .x{width:20px;height:20px;border:none;background:none;color:inherit;border-radius:5px;cursor:pointer;font-size:15px;line-height:1}
+  .tab .x:hover{background:#ffffff14}
+  .tab .spin{width:10px;height:10px;border:2px solid var(--acc);border-right-color:transparent;border-radius:50%;animation:s .7s linear infinite;display:none}
+  .tab.loading .spin{display:block}
+  @keyframes s{to{transform:rotate(360deg)}}
+  #newtab{width:30px;height:30px;margin-bottom:2px;border:none;border-radius:8px;background:none;color:var(--mut);font-size:20px;cursor:pointer;flex:none}
+  #newtab:hover{background:#ffffff10;color:var(--tx)}
+  #bar{display:flex;align-items:center;gap:6px;padding:7px 10px;background:var(--tabA);border-bottom:1px solid var(--line)}
+  .nb{width:32px;height:32px;border:none;border-radius:8px;background:none;color:var(--tx);cursor:pointer;display:grid;place-items:center;flex:none}
+  .nb:hover{background:#ffffff12}
+  .nb svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+  #addr{flex:1;height:34px;border-radius:17px;border:1px solid var(--line);background:#0a111d;color:var(--tx);padding:0 16px;font-size:14px;outline:none;min-width:0}
+  #addr:focus{border-color:var(--acc)}
+  #shield{display:flex;align-items:center;gap:5px;height:32px;padding:0 10px;border:1px solid var(--line);border-radius:16px;background:#0a111d;color:var(--ok);cursor:pointer;flex:none;font-size:12px}
+  #shield.off{color:var(--mut)}
+  #shield svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:2}
+  #eng{height:32px;border:1px solid var(--line);border-radius:16px;background:#0a111d;color:var(--mut);padding:0 8px;flex:none}
+  #view{position:relative;flex:1;background:var(--bg)}
+  #view iframe{position:absolute;inset:0;width:100%;height:100%;border:none;background:#fff;display:none}
+  #view iframe.on{display:block}
+  .home{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;gap:18px;background:radial-gradient(ellipse at 50% 30%,#132443 0%,var(--bg) 60%)}
+  .home.on{display:flex}
+  .home h1{margin:0;font-size:34px;font-weight:600;letter-spacing:.02em;color:#e8f0ff}
+  .home form{width:min(560px,86vw)}
+  .home input{width:100%;height:48px;border-radius:24px;border:1px solid var(--line);background:#0c1626;color:var(--tx);padding:0 22px;font-size:16px;outline:none}
+  .home input:focus{border-color:var(--acc)}
+  .home .q{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+  .home .q button{border:1px solid var(--line);background:#0c1626;color:var(--mut);border-radius:14px;padding:7px 14px;cursor:pointer}
+  .home .q button:hover{color:var(--tx)}
+  #status{position:absolute;left:50%;top:14px;transform:translateX(-50%);background:#0d1522ee;border:1px solid var(--line);padding:7px 14px;border-radius:14px;color:var(--mut);display:none;z-index:5}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="tabs"><button id="newtab" title="New tab">+</button></div>
+  <div id="bar">
+    <button class="nb" id="back" title="Back"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <button class="nb" id="fwd" title="Forward"><svg viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg></button>
+    <button class="nb" id="reload" title="Reload"><svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg></button>
+    <button class="nb" id="homeb" title="Home"><svg viewBox="0 0 24 24"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg></button>
+    <input id="addr" spellcheck="false" autocomplete="off" placeholder="Search or enter address" />
+    <select id="eng" title="Search engine"><option value="ddg">DuckDuckGo</option><option value="g">Google</option></select>
+    <button id="shield" title="Ad blocker"><svg viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/></svg><span id="cnt">0</span></button>
+  </div>
+  <div id="view"><div id="status"></div></div>
+</div>
+<script src="/m4thx/index.js?v=dl13"></script>
+<script src="/q9vx/sj.all.js?v=dl13"></script>
+<script src="/config.js"></script>
+<script>
+(function () {
+  "use strict";
+  // ---- proxy engine (same config as /embed.html so the shared service worker stays consistent)
+  function c(a){return a.map(function(n){return String.fromCharCode(n)}).join("")}
+  var loadCtrl=c([36,118,111,108,116,101,100,103,101,76,111,97,100,67,111,110,116,114,111,108,108,101,114]);
+  var ctrlName=c([86,111,108,116,101,100,103,101,67,111,110,116,114,111,108,108,101,114]);
+  var muxName=c([67,108,105,112,77,117,120]), muxConn=c([67,108,105,112,77,117,120,67,111,110,110,101,99,116,105,111,110]);
+  var setT=c([98,105,110,100,84,114,97,110,115,102,101,114]), streamKey=c([108,105,110,107]);
+  var makeFrame=c([111,112,101,110,83,117,114,102,97,99,101]);
+  // Codec functions are serialized by the engine, so they must be self-contained.
+  function enc(u){if(!u)return u;var k="hypestudy_px_k1",A="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_",x="",i,o="";for(i=0;i<u.length;i++)x+=String.fromCharCode(u.charCodeAt(i)^k.charCodeAt(i%k.length));for(i=0;i<x.length;i++){var ch=x.charCodeAt(i);o+=A[(ch>>12)&63]+A[(ch>>6)&63]+A[ch&63]}return o}
+  function dec(u){if(!u)return u;var k="hypestudy_px_k1",A="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_",x="",i,o="";for(i=0;i+2<u.length;i+=3){var a=A.indexOf(u[i]),b=A.indexOf(u[i+1]),d=A.indexOf(u[i+2]);if(a<0||b<0||d<0)break;x+=String.fromCharCode((a<<12)|(b<<6)|d)}for(i=0;i<x.length;i++)o+=String.fromCharCode(x.charCodeAt(i)^k.charCodeAt(i%k.length));return o}
+  var PREFIX="/afsd123k2/";
+  var engine=null, conn=null, initP=null, bound="";
+  function waitFor(fn,ms){return new Promise(function(res,rej){var st=Date.now();var t=setInterval(function(){try{if(fn()){clearInterval(t);res();return}}catch(e){}if(Date.now()-st>ms){clearInterval(t);rej(new Error("timeout"))}},50)})}
+  function streamUrl(){if(typeof _CONFIG!=="undefined"&&_CONFIG.streamurl)return _CONFIG.streamurl;return(location.protocol==="https:"?"wss://":"ws://")+location.host+"/api/websocket/"}
+  var bareurl=(typeof _CONFIG!=="undefined"&&_CONFIG.bareurl)||location.origin+"/api/edge/";
+  async function bindTransport(){
+    var su=streamUrl(); if(bound===su)return;
+    for(var i=0;i<40;i++){
+      try{var o={};o[streamKey]=su;await conn[setT]("/e7px/index.mjs",[o]);bound=su;return}catch(e1){
+      try{var o2={};o2[streamKey]=su;await conn[setT]("/l9cx/index.mjs",[o2]);bound=su;return}catch(e2){
+      try{await conn[setT]("/m4thx/index.mjs",[bareurl]);bound=su;return}catch(e3){await new Promise(function(r){setTimeout(r,150)})}}}
+    }
+    throw new Error("transport");
+  }
+  function init(){
+    if(initP)return initP;
+    initP=(async function(){
+      await waitFor(function(){return typeof window[loadCtrl]==="function"},12000);
+      var Ctrl=window[loadCtrl]()[ctrlName];
+      engine=new Ctrl({prefix:PREFIX,files:{wasm:"/q9vx/ld.bin",all:"/q9vx/sj.all.js?v=dl13",sync:"/q9vx/sj.sync.js?v=dl13"},
+        flags:{sourcemaps:false,rewriterLogs:false,captureErrors:true},codec:{encode:enc,decode:dec}});
+      // Create the engine's IndexedDB stores before the service worker can open the DB without them.
+      try{await engine.init()}catch(e){
+        await new Promise(function(r){try{var q=indexedDB.deleteDatabase("$voltedge");q.onsuccess=q.onerror=q.onblocked=function(){r()}}catch(x){r()}});
+        await engine.init();
+      }
+      try{await navigator.serviceWorker.register("/1k123.js?v=dl13",{updateViaCache:"none",scope:"/"});await navigator.serviceWorker.ready}catch(e){}
+      await waitFor(function(){return!!(window[muxName]&&window[muxName][muxConn])},8000);
+      conn=new window[muxName][muxConn]("/m4thx/worker.js");
+      try{var cm={};cm[["volt","edge","$type"].join("")]="loadConfig";navigator.serviceWorker.controller&&navigator.serviceWorker.controller.postMessage(cm)}catch(e){}
+      await bindTransport();
+      pushShield();
+    })().catch(function(e){initP=null;throw e});
+    return initP;
+  }
+
+  // ---- ad blocking: network (service worker) + cosmetic (in-page)
+  var shieldOn=localStorage.getItem("nt-shield")!=="0", blocked=0;
+  var $cnt=document.getElementById("cnt"), $shield=document.getElementById("shield");
+  function paintShield(){$shield.classList.toggle("off",!shieldOn);$cnt.textContent=shieldOn?String(blocked):"off";$shield.title=shieldOn?("Ad blocker on - "+blocked+" blocked"):"Ad blocker off"}
+  function pushShield(){try{var sw=navigator.serviceWorker&&(navigator.serviceWorker.controller||null);var m={type:"pzbShield",on:shieldOn};if(sw)sw.postMessage(m);navigator.serviceWorker.ready.then(function(r){r.active&&r.active.postMessage(m)}).catch(function(){})}catch(e){}}
+  try{var bc=new BroadcastChannel("pzb-shield");bc.onmessage=function(ev){if(shieldOn&&ev.data&&ev.data.blocked){blocked++;paintShield()}}}catch(e){}
+  setInterval(pushShield,8000);
+  $shield.onclick=function(){shieldOn=!shieldOn;localStorage.setItem("nt-shield",shieldOn?"1":"0");pushShield();paintShield();reloadActive()};
+  var COSMETIC="[id*='google_ads'],ins.adsbygoogle,iframe[id^='google_ads'],iframe[src*='doubleclick'],iframe[src*='googlesyndication'],iframe[src*='amazon-adsystem'],iframe[src*='adnxs.com'],div[data-ad],div[data-ad-slot],div[class*='adsbox'],div[class*='ad-container'],div[class*='advertisement'],[aria-label='Ads'],[aria-label='Advertisement']";
+  function cosmetic(fr){
+    if(!shieldOn)return;
+    try{var d=fr.contentDocument;if(!d||!d.documentElement||d.__ntc)return;d.__ntc=1;
+      var st=d.createElement("style");st.textContent=COSMETIC+"{display:none!important}";(d.head||d.documentElement).appendChild(st);}catch(e){}
+  }
+
+  // ---- tabs
+  var tabs=[], active=null, seq=0;
+  var $tabs=document.getElementById("tabs"), $new=document.getElementById("newtab"), $view=document.getElementById("view"), $addr=document.getElementById("addr"), $eng=document.getElementById("eng"), $status=document.getElementById("status");
+  $eng.value=localStorage.getItem("nt-eng")||"ddg"; $eng.onchange=function(){localStorage.setItem("nt-eng",$eng.value)};
+  function status(t){$status.textContent=t||"";$status.style.display=t?"block":"none"}
+  function toUrl(raw){
+    var s=String(raw||"").trim(); if(!s)return "";
+    if(/^https?:\/\//i.test(s))return s;
+    if(!/\s/.test(s)&&/^[^\s\/]+\.[a-z]{2,}(:\d+)?(\/.*)?$/i.test(s))return "https://"+s;
+    if(/^localhost(:\d+)?(\/|$)/i.test(s))return "http://"+s;
+    var q=encodeURIComponent(s);
+    return $eng.value==="g"?"https://www.google.com/search?q="+q:"https://duckduckgo.com/?q="+q;
+  }
+  function realUrl(t){
+    try{var w=t.frame.contentWindow;var p=w.location.pathname+w.location.search+w.location.hash;
+      if(p.indexOf(PREFIX)!==0)return t.url;var rest=w.location.pathname.slice(PREFIX.length);
+      var u=dec(decodeURIComponent(rest));return u&&/^https?:/i.test(u)?u:t.url}catch(e){return t.url}
+  }
+  function hostOf(u){try{return new URL(u).hostname.replace(/^www\./,"")}catch(e){return ""}}
+  function mkHome(t){
+    var h=document.createElement("div");h.className="home";
+    h.innerHTML='<h1>Search</h1><form><input placeholder="Search the web or type a URL" spellcheck="false" autocomplete="off"></form><div class="q"></div>';
+    var qs=[["DuckDuckGo","https://duckduckgo.com"],["Google","https://www.google.com"],["Wikipedia","https://en.wikipedia.org"],["YouTube","https://www.youtube.com"]];
+    qs.forEach(function(x){var b=document.createElement("button");b.type="button";b.textContent=x[0];b.onclick=function(){navigate(t,x[1])};h.querySelector(".q").appendChild(b)});
+    h.querySelector("form").onsubmit=function(e){e.preventDefault();var v=h.querySelector("input").value;if(v.trim())navigate(t,v)};
+    $view.appendChild(h);return h;
+  }
+  function addTab(url){
+    var t={id:++seq,url:"",title:"New Tab",frame:null,wrap:null,home:null,el:null,hist:[],hi:-1,hnav:false};
+    var el=document.createElement("div");el.className="tab";
+    el.innerHTML='<span class="spin"></span><span class="t">New Tab</span><button class="x" title="Close">&times;</button>';
+    el.onclick=function(e){if(e.target.classList.contains("x"))return;select(t)};
+    el.querySelector(".x").onclick=function(e){e.stopPropagation();closeTab(t)};
+    el.onauxclick=function(e){if(e.button===1)closeTab(t)};
+    $tabs.insertBefore(el,$new);t.el=el;t.home=mkHome(t);tabs.push(t);select(t);
+    if(url)navigate(t,url);
+    return t;
+  }
+  function setTitle(t,s){t.title=s||"New Tab";t.el.querySelector(".t").textContent=t.title;t.el.title=t.title}
+  function select(t){
+    active=t;tabs.forEach(function(x){var on=x===t;x.el.classList.toggle("active",on);x.home.classList.toggle("on",on&&!x.url);if(x.frame)x.frame.classList.toggle("on",on&&!!x.url)});
+    $addr.value=t.url||"";
+    if(!t.url)setTimeout(function(){var i=t.home.querySelector("input");i&&i.focus()},0);
+  }
+  function closeTab(t){
+    var i=tabs.indexOf(t);if(i<0)return;
+    if(t.frame)t.frame.remove();t.home.remove();t.el.remove();tabs.splice(i,1);
+    if(!tabs.length){addTab();return}
+    if(active===t)select(tabs[Math.min(i,tabs.length-1)]);
+  }
+  async function navigate(t,raw){
+    var url=toUrl(raw);if(!url)return;
+    t.url=url;setTitle(t,hostOf(url)||"Loading");t.el.classList.add("loading");
+    if(active===t){$addr.value=url;t.home.classList.remove("on")}
+    try{
+      status(engine?"":"Starting…");
+      await init();status("");pushShield();
+      if(!t.frame){
+        var w=engine[makeFrame]();t.wrap=w;t.frame=w.frame;
+        t.frame.setAttribute("allow","fullscreen; autoplay; clipboard-read; clipboard-write; encrypted-media; picture-in-picture");
+        t.frame.addEventListener("load",function(){
+          t.el.classList.remove("loading");
+          try{if(t.frame.contentWindow.location.href==="about:blank")return}catch(e){}
+          cosmetic(t.frame);
+          var u=realUrl(t);t.url=u;if(active===t&&document.activeElement!==$addr)$addr.value=u;
+          if(t.hnav){t.hnav=false}else if(u&&t.hist[t.hi]!==u){t.hist=t.hist.slice(0,t.hi+1);t.hist.push(u);t.hi=t.hist.length-1}
+          var ti="";try{ti=t.frame.contentDocument.title}catch(e){}
+          setTitle(t,ti||hostOf(u)||"New Tab");
+        });
+        try{w.addEventListener("urlchange",function(ev){try{var u=String(ev.url);t.url=u;if(active===t&&document.activeElement!==$addr)$addr.value=u}catch(e){}})}catch(e){}
+        $view.appendChild(t.frame);
+      }
+      t.wrap.go(url);
+      if(active===t){t.frame.classList.add("on")}
+    }catch(e){window.__ntErr=String(e&&e.stack||e);t.el.classList.remove("loading");status("Could not start the browser. Reload this page and try again.")}
+  }
+  function reloadActive(){var t=active;if(t&&t.wrap&&t.url){t.hnav=true;try{t.wrap.reload()}catch(e){t.wrap.go(t.url)}}}
+  setInterval(function(){tabs.forEach(function(t){if(!t.frame||!t.url)return;try{var ti=t.frame.contentDocument&&t.frame.contentDocument.title;if(ti&&ti!==t.title)setTitle(t,ti)}catch(e){}})},1500);
+
+  $new.onclick=function(){addTab()};
+  // Per-tab history (iframe history.back() would walk the shared session history and could leave this page).
+  function step(d){var t=active;if(!t||!t.wrap)return;var j=t.hi+d;if(j<0||j>=t.hist.length)return;t.hi=j;t.hnav=true;t.url=t.hist[j];$addr.value=t.url;t.el.classList.add("loading");t.frame.classList.add("on");t.home.classList.remove("on");t.wrap.go(t.url)}
+  document.getElementById("back").onclick=function(){step(-1)};
+  document.getElementById("fwd").onclick=function(){step(1)};
+  document.getElementById("reload").onclick=reloadActive;
+  document.getElementById("homeb").onclick=function(){var t=active;if(!t)return;t.url="";if(t.frame){t.frame.classList.remove("on");try{t.frame.src="about:blank"}catch(e){}}setTitle(t,"New Tab");select(t)};
+  $addr.addEventListener("keydown",function(e){if(e.key==="Enter"){e.preventDefault();if(active)navigate(active,$addr.value);$addr.blur()}});
+  $addr.addEventListener("focus",function(){$addr.select()});
+  document.addEventListener("keydown",function(e){if((e.ctrlKey||e.metaKey)&&e.altKey&&e.key.toLowerCase()==="t"){e.preventDefault();addTab()}});
+
+  paintShield();
+  var start=location.hash.slice(1);
+  try{start=decodeURIComponent(start)}catch(e){}
+  addTab(start||"");
+  init().catch(function(){});
+  window.__nt={tabs:tabs,addTab:addTab,navigate:navigate,get blocked(){return blocked}};
+})();
+</script>
+</body>
+</html>

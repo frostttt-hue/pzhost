@@ -231,6 +231,28 @@ self.addEventListener('message', function (msg) {
   }
 });
 
+// Optional network ad/tracker blocking, switched on by /nt.html via postMessage({type:'pzbShield'}).
+var _pzbOn = false;
+var _pzbRe = /(?:^|\.)(?:doubleclick\.net|googlesyndication\.com|googleadservices\.com|googletagservices\.com|adservice\.google\.[a-z.]+|google-analytics\.com|googletagmanager\.com|amazon-adsystem\.com|adnxs\.com|adsrvr\.org|advertising\.com|taboola\.com|outbrain\.com|criteo\.com|criteo\.net|moatads\.com|scorecardresearch\.com|quantserve\.com|quantcount\.com|pubmatic\.com|openx\.net|rubiconproject\.com|casalemedia\.com|media\.net|adform\.net|smartadserver\.com|yieldmo\.com|33across\.com|sharethrough\.com|teads\.tv|zedo\.com|popads\.net|popcash\.net|propellerads\.com|adsterra\.com|exoclick\.com|exosrv\.com|juicyads\.com|trafficjunky\.net|hotjar\.com|mixpanel\.com|segment\.io|amplitude\.com|bat\.bing\.com|ads\.yahoo\.com|ads\.linkedin\.com|ads-twitter\.com|static\.ads-twitter\.com|connect\.facebook\.net|an\.facebook\.com|pixel\.facebook\.com|ads\.tiktok\.com|analytics\.tiktok\.com|imasdk\.googleapis\.com|pagead2\.googlesyndication\.com|fundingchoicesmessages\.google\.com|adsafeprotected\.com|doubleverify\.com|serving-sys\.com|bidswitch\.net|lijit\.com|sovrn\.com|indexww\.com|gumgum\.com|onetag-sys\.com|3lift\.com|triplelift\.com|chartbeat\.com|newrelic\.com|nr-data\.net|clarity\.ms|yandex\.ru\/ads|mc\.yandex\.ru)$/i;
+var _pzbBc = null;
+try { _pzbBc = new BroadcastChannel('pzb-shield'); } catch (e) {}
+self.addEventListener('message', function (msg) {
+  var d = msg.data;
+  if (d && d.type === 'pzbShield') _pzbOn = !!d.on;
+});
+_engine.addEventListener('request', function (e) {
+  if (!_pzbOn || e.response) return;
+  try {
+    var h = e.url && e.url.hostname;
+    if (h && _pzbRe.test(h)) {
+      var hd = { 'content-type': 'text/plain' };
+      e.response = new Response('', { status: 200, headers: hd });
+      e.response.rawHeaders = hd;
+      if (_pzbBc) _pzbBc.postMessage({ blocked: h });
+    }
+  } catch (err) {}
+});
+
 _engine.addEventListener('request', function (e) {
   if (playgroundData && e.url.href.indexOf(playgroundData.origin) === 0) {
     var headers = {};
